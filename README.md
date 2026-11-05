@@ -1,6 +1,6 @@
 # Morrowlog
 
-A Vite + React + TypeScript blog frontend for the FastAPI service in `C:\CWT\LCL\fastapi-blog`.
+A Vite + React + TypeScript blog frontend for the FastAPI service in `simple-blog-backend`.
 
 ## Run locally
 
