@@ -30,8 +30,8 @@ function App() {
         <Route path="/post/:id" element={<PostPage user={user} flash={flash} />} />
         <Route path="/write" element={<Composer user={user} flash={flash} />} />
         <Route path="/edit/:id" element={<Composer user={user} flash={flash} />} />
-        <Route path="/login" element={<AuthPage mode="login" setUser={setUser} flash={flash} />} />
-        <Route path="/register" element={<AuthPage mode="register" setUser={setUser} flash={flash} />} />
+        <Route path="/login" element={<AuthPage mode="login" setUser={setUser} />} />
+        <Route path="/register" element={<AuthPage mode="register" setUser={setUser} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </main>
@@ -208,7 +208,7 @@ function Composer({ user, flash }: { user: User | null; flash: (message: string)
 
 function AuthRequired() { return <div className="narrow-page auth-required"><span className="state-icon"><PenLine size={20} /></span><h1>Sign in to write</h1><p>Create an account or sign in to publish a post.</p><div className="auth-choice"><Link to="/login" className="button button-primary">Sign in</Link><Link to="/register" className="button button-secondary">Create account</Link></div></div> }
 
-function AuthPage({ mode, setUser, flash }: { mode: 'login' | 'register'; setUser: (user: User) => void; flash: (message: string) => void }) {
+function AuthPage({ mode, setUser }: { mode: 'login' | 'register'; setUser: (user: User) => void }) {
   const isRegister = mode === 'register'
   const navigate = useNavigate()
   const location = useLocation()
@@ -217,17 +217,29 @@ function AuthPage({ mode, setUser, flash }: { mode: 'login' | 'register'; setUse
   const [password, setPassword] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [registerChoice, setRegisterChoice] = useState<'choose' | 'request' | 'code'>('choose')
+  const [accessRequestSent, setAccessRequestSent] = useState(false)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
   const from = (location.state as { from?: string } | null)?.from || '/'
+  const dismissAccessConfirmation = () => {
+    setAccessRequestSent(false)
+    navigate('/', { replace: true })
+  }
+  useEffect(() => {
+    if (!accessRequestSent) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismissAccessConfirmation()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [accessRequestSent])
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setPending(true); setError('')
     try {
       if (isRegister) {
         if (registerChoice === 'request') {
-          const result = await api.requestAccess(email.trim())
-          flash(result.message)
-          navigate('/', { replace: true })
+          await api.requestAccess(email.trim())
+          setAccessRequestSent(true)
           return
         }
         await api.register({ email: email.trim(), invite_code: inviteCode.trim(), username: username.trim(), password })
@@ -237,12 +249,12 @@ function AuthPage({ mode, setUser, flash }: { mode: 'login' | 'register'; setUse
       const me = await api.me(); setUser(me); navigate(from, { replace: true })
     } catch (err) { setError(errorMessage(err)) } finally { setPending(false) }
   }
-  return <div className="auth-layout"><div className="auth-story"><Link to="/" className="brand"><span className="brand-mark">m</span><span>Morrowlog</span></Link><div className="auth-story-copy"><p className="eyebrow"><span className="eyebrow-dot" />A place to share ideas</p><h1>Read with care.<br /><em>Write with purpose.</em></h1><p>Good writing can start anywhere. Find a thought worth keeping, or leave one for someone else.</p></div><span className="story-foot">A small corner of the internet for words.</span></div>
-    <div className="auth-form-side"><div className="auth-form-wrap"><Link to="/" className="mobile-brand brand"><span className="brand-mark">m</span>Morrowlog</Link><p className="eyebrow">{isRegister ? 'Make a little room' : 'Welcome back'}</p><h2>{isRegister ? registerChoice === 'choose' ? 'Request access' : registerChoice === 'request' ? 'Request a new account' : 'Enter your invite code' : 'Sign in to Morrowlog'}</h2><p className="auth-subtitle">{isRegister ? registerChoice === 'choose' ? 'Choose how you would like to join Morrowlog.' : registerChoice === 'request' ? 'We’ll review your request and email an invite code within 1–3 business days.' : 'Use the email address that received your invite code.' : 'Pick up where you left off.'}</p>
+  return <><div className="auth-layout"><div className="auth-story"><Link to="/" className="brand"><span className="brand-mark">m</span><span>Morrowlog</span></Link><div className="auth-story-copy"><p className="eyebrow"><span className="eyebrow-dot" />A place to share ideas</p><h1>Read with care.<br /><em>Write with purpose.</em></h1><p>Good writing can start anywhere. Find a thought worth keeping, or leave one for someone else.</p></div><span className="story-foot">A small corner of the internet for words.</span></div>
+    <div className="auth-form-side"><div className="auth-form-wrap"><Link to="/" className="mobile-brand brand"><span className="brand-mark">m</span>Morrowlog</Link><p className="eyebrow">{isRegister ? 'Make a little room' : 'Welcome back'}</p><h2>{isRegister ? registerChoice === 'choose' ? 'Request access' : registerChoice === 'request' ? 'Request a new account' : 'Enter your invite code' : 'Sign in to Morrowlog'}</h2><p className="auth-subtitle">{isRegister ? registerChoice === 'choose' ? 'Choose how you would like to join Morrowlog.' : registerChoice === 'request' ? 'Support will provide an invite code within 24 hours.' : 'Use the email address that received your invite code.' : 'Pick up where you left off.'}</p>
       {isRegister && registerChoice === 'choose' ? <div className="auth-form"><button className="button button-primary auth-submit" onClick={() => setRegisterChoice('request')}>Request a new account<ArrowRight size={16} /></button><button className="button button-secondary auth-submit" onClick={() => setRegisterChoice('code')}>Enter invite code<ArrowRight size={16} /></button></div> : <form onSubmit={submit} className="auth-form">{isRegister && registerChoice === 'code' && <label className="form-field"><span>Invite code</span><input value={inviteCode} onChange={e => setInviteCode(e.target.value)} autoComplete="off" required /></label>}{isRegister && registerChoice === 'code' && <label className="form-field"><span>Username</span><input value={username} onChange={e => setUsername(e.target.value)} minLength={3} maxLength={30} pattern="[A-Za-z0-9_]+" autoComplete="username" placeholder="Letters, numbers, and _" required /><small>3–30 characters. Letters, numbers, and underscores.</small></label>}<label className="form-field"><span>Email address</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" placeholder="you@example.com" required /></label>{(!isRegister || registerChoice === 'code') && <label className="form-field"><span>Password</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={isRegister ? 12 : undefined} maxLength={128} autoComplete={isRegister ? 'new-password' : 'current-password'} placeholder={isRegister ? 'At least 12 characters' : 'Your password'} required />{isRegister && <small>Use at least 12 characters.</small>}</label>}{error && <div className="form-error" role="alert">{error}</div>}<button className="button button-primary auth-submit" disabled={pending}>{pending ? 'One moment…' : isRegister ? registerChoice === 'request' ? 'Submit access request' : 'Create account' : 'Sign in'}<ArrowRight size={16} /></button>{isRegister && <button type="button" className="button button-text" onClick={() => { setRegisterChoice('choose'); setError('') }}>Back to options</button>}</form>}
       <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Morrowlog?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Create an account'}</Link></p>
     </div></div>
-  </div>
+  </div>{accessRequestSent && <div className="access-dialog-backdrop" onClick={event => { if (event.target === event.currentTarget) dismissAccessConfirmation() }}><section className="access-dialog" role="dialog" aria-modal="true" aria-labelledby="access-dialog-title" aria-describedby="access-dialog-description"><button type="button" className="access-dialog-close" onClick={dismissAccessConfirmation} aria-label="Close confirmation"><X size={18} /></button><span className="access-dialog-icon"><Check size={20} /></span><p className="eyebrow">Request received</p><h2 id="access-dialog-title">Your access code is on its way.</h2><p id="access-dialog-description">Support will provide your access code within 24 hours. When you receive it, come back and join using this email address and the invite code you received.</p><button type="button" className="button button-primary access-dialog-confirm" onClick={dismissAccessConfirmation}>Got it</button></section></div>}</>
 }
 
 function NotFound() { return <div className="narrow-page not-found"><p className="eyebrow">404 · Page not found</p><h1>This page is missing.</h1><p>The post or page you’re looking for may have moved.</p><Link to="/" className="button button-primary">Back to all posts<ArrowRight size={16} /></Link></div> }
