@@ -3,7 +3,8 @@ export type Post = {
   id: number; title: string; body: string; author: User; created_at: string; updated_at: string;
   reaction_count: number; comment_count: number
 }
-export type Comment = { id: number; post_id: number; author_id: number; body: string; created_at: string }
+export type Comment = { id: number; post_id: number; author_id: number; author: { username: string }; body: string; created_at: string }
+export type AccessRequestResult = { message: string }
 
 const tokenKey = 'morrowlog.accessToken'
 export const getToken = () => localStorage.getItem(tokenKey)
@@ -35,7 +36,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  register: (data: { email: string; username: string; password: string }) => request<User>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  requestAccess: (email: string) => request<AccessRequestResult>('/auth/access-request', { method: 'POST', body: JSON.stringify({ email }) }),
+  register: (data: { email: string; invite_code: string; username: string; password: string }) => request<User>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data: { email: string; password: string }) => request<{ access_token: string; token_type: string }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   me: () => request<User>('/auth/me'),
   posts: (offset: number, limit = 20) => request<Post[]>(`/posts?limit=${limit}&offset=${offset}`),
