@@ -13,11 +13,33 @@ const json = (payload: unknown, status = 200) => new Response(JSON.stringify(pay
 afterEach(() => { cleanup(); vi.restoreAllMocks(); localStorage.clear() })
 
 describe('blog UI flow', () => {
+  it('submits an access request and returns to the home screen with the review notice', async () => {
+    const ui = userEvent.setup()
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      void init
+      const url = String(input)
+      if (url === '/api/v1/auth/access-request') return json({ message: 'Your request has been submitted. Invite code in 1–3 business days.' }, 202)
+      if (url.startsWith('/api/v1/posts?')) return json([])
+      return json({ detail: `Unexpected request: ${url}` }, 500)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MemoryRouter initialEntries={['/register']}><App /></MemoryRouter>)
+    await ui.click(screen.getByRole('button', { name: /Request a new account/ }))
+    await ui.type(screen.getByLabelText('Email address'), 'reader@example.com')
+    await ui.click(screen.getByRole('button', { name: /Submit access request/ }))
+
+    await screen.findByRole('heading', { name: 'All posts' })
+    expect((await screen.findByRole('status')).textContent).toContain('Invite code in 1–3 business days.')
+    const request = fetchMock.mock.calls.find(([url]) => String(url) === '/api/v1/auth/access-request')
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({ email: 'reader@example.com' })
+  })
+
   it('registers, publishes, reacts, comments, edits, and deletes through the API', async () => {
     const ui = userEvent.setup()
     let post = { ...seedPost }
     const posts = new Map<number, typeof seedPost>()
-    const comments: Array<{ id: number; post_id: number; author_id: number; body: string; created_at: string }> = []
+    const comments: Array<{ id: number; post_id: number; author_id: number; author: { username: string }; body: string; created_at: string }> = []
     const requests: Array<[string, string]> = []
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input)
@@ -44,7 +66,7 @@ describe('blog UI flow', () => {
       if (url === '/api/v1/posts/7/comments?limit=50&offset=0' && method === 'GET') return json(comments)
       if (url === '/api/v1/posts/7/comments' && method === 'POST') {
         const payload = JSON.parse(String(init.body)) as { body: string }
-        const comment = { id: 11, post_id: 7, author_id: user.id, body: payload.body, created_at: now }
+        const comment = { id: 11, post_id: 7, author_id: user.id, author: { username: user.username }, body: payload.body, created_at: now }
         comments.push(comment); post = { ...post, comment_count: comments.length }
         return json(comment, 201)
       }
@@ -54,7 +76,9 @@ describe('blog UI flow', () => {
     vi.stubGlobal('confirm', vi.fn(() => true))
 
     render(<MemoryRouter initialEntries={['/register']}><App /></MemoryRouter>)
+    await ui.click(screen.getByRole('button', { name: /Enter invite code/ }))
     await ui.type(screen.getByLabelText(/Username/), 'writer')
+    await ui.type(screen.getByLabelText('Invite code'), 'valid-code')
     await ui.type(screen.getByLabelText('Email address'), 'writer@example.com')
     await ui.type(screen.getByLabelText(/Password/), 'twelvecharacters')
     await ui.click(screen.getByRole('button', { name: 'Create account' }))
@@ -69,7 +93,8 @@ describe('blog UI flow', () => {
     await ui.click(screen.getByRole('button', { name: /Like/ }))
     await ui.type(screen.getByRole('textbox', { name: 'Write a comment' }), 'A useful addition.')
     await ui.click(screen.getByRole('button', { name: 'Send comment' }))
-    await screen.findByText('A useful addition.')
+    const submittedComment = await screen.findByText('A useful addition.')
+    expect(submittedComment.closest('.comment')?.querySelector('strong')?.textContent).toBe('writer')
 
     await ui.click(screen.getByRole('link', { name: 'Edit post' }))
     const titleField = await screen.findByLabelText(/Title/)

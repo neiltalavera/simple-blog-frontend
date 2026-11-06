@@ -60,7 +60,7 @@ describe('API client', () => {
       .mockResolvedValueOnce(new Response('{}', { status: 200 }))
       .mockResolvedValueOnce(new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
-    await api.register({ email: 'reader@example.com', username: 'reader_1', password: 'twelvecharacters' })
+    await api.register({ email: 'reader@example.com', invite_code: 'invite', username: 'reader_1', password: 'twelvecharacters' })
     await api.login({ email: 'reader@example.com', password: 'twelvecharacters' })
     await api.me()
     expect(fetchMock.mock.calls.map(([url, init]) => [url, init?.method ?? 'GET'])).toEqual([
