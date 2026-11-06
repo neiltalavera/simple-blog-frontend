@@ -205,6 +205,17 @@ button { color: inherit; }
 .story-foot { color: #8b9086; font-size: 11px; }
 .auth-form-side { padding: 50px 40px; display: grid; place-items: center; }
 .auth-form-wrap { width: min(100%, 380px); }
+.access-dialog-backdrop { position: fixed; z-index: 100; inset: 0; padding: 24px; display: grid; place-items: center; background: #19201966; backdrop-filter: blur(3px); animation: access-backdrop-in 160ms ease-out; }
+.access-dialog { position: relative; width: min(100%, 440px); padding: 32px; border: 1px solid #e7ebe4; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px #17251a30; animation: access-dialog-in 190ms ease-out; }
+.access-dialog-close { position: absolute; top: 13px; right: 13px; width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 8px; color: #777a72; background: transparent; cursor: pointer; }
+.access-dialog-close:hover { color: #30332d; background: #f4f6f2; }
+.access-dialog-icon { width: 42px; height: 42px; margin-bottom: 20px; display: grid; place-items: center; border-radius: 12px; color: #356b41; background: #eaf7ed; }
+.access-dialog .eyebrow { margin-bottom: 8px; color: #5d8063; }
+.access-dialog h2 { max-width: 340px; margin: 0; color: #292d28; font-size: 25px; font-weight: 500; line-height: 1.25; letter-spacing: -.035em; }
+.access-dialog > p:not(.eyebrow) { margin: 12px 0 0; color: #6f736b; font-size: 14px; line-height: 1.7; }
+.access-dialog-confirm { width: 100%; min-height: 44px; margin-top: 24px; justify-content: center; }
+@keyframes access-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes access-dialog-in { from { opacity: .8; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .auth-form-wrap > .eyebrow { color: #70806f; }
 .auth-form-wrap > h2 { margin: 12px 0 7px; color: #2d2f2a; font-size: 29px; font-weight: 500; letter-spacing: -.045em; }
 .auth-subtitle { margin: 0; color: #797b74; font-size: 13px; line-height: 1.65; }
