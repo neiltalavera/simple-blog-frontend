@@ -1,6 +1,7 @@
 # Morrowlog
 
 A Vite + React + TypeScript blog frontend for the FastAPI service in `simple-blog-backend`.
+backend service: https://github.com/neiltalavera/simple-blog-frontend
 
 ## Run locally
 
