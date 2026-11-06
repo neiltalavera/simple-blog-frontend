@@ -7,6 +7,7 @@ export type Comment = { id: number; post_id: number; author_id: number; author: 
 export type AccessRequestResult = { message: string }
 
 const tokenKey = 'morrowlog.accessToken'
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 export const getToken = () => localStorage.getItem(tokenKey)
 export const saveToken = (token: string | null) => token ? localStorage.setItem(tokenKey, token) : localStorage.removeItem(tokenKey)
 
@@ -21,7 +22,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body) headers.set('Content-Type', 'application/json')
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
-  const response = await fetch(`/api/v1${path}`, { ...init, headers })
+  const response = await fetch(`${apiBaseUrl}/api/v1${path}`, { ...init, headers })
   if (!response.ok) {
     let message = `Request failed (${response.status})`
     try {
