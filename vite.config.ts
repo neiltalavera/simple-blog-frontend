@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '127.0.0.1',
-    proxy: { '/api': 'http://127.0.0.1:8000' },
+    proxy: { '/api': 'https://5iyzw5ubhdav5caplypieaawc40giuvf.lambda-url.ap-southeast-2.on.aws' },
   },
 })
